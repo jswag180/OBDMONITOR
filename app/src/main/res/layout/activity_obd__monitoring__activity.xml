@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_obd__monitoring__activity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="swagyyydevelopment.jswag180.com.obdmonitor.OBD_MONITORING_ACTIVITY">
+
+    <Button
+        android:text="BUTTONGETPAIRED"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="45dp"
+        android:id="@+id/BUTTONGETPAIRED" />
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/BUTTONGETPAIRED"
+        android:layout_marginTop="47dp"
+        android:id="@+id/SPPINERBD"
+        android:layout_alignEnd="@+id/BUTTONGETPAIRED"
+        android:layout_alignStart="@+id/BUTTONGETPAIRED" />
+
+    <Button
+        android:text="SELECT"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/SPPINERBD"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="18dp"
+        android:id="@+id/BUTTONSLECT"
+        android:visibility="gone" />
+</RelativeLayout>
