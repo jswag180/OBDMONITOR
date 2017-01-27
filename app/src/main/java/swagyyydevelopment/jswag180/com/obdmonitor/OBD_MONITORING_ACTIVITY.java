@@ -21,7 +21,7 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
     private BluetoothAdapter myBluetooth = null;
     private Set pairedDevices;
 
-    Button BUTTONGETPAIRED;
+    Button BUTTONGETPAIRED,button;
     Spinner SPINNERBD;
     Button BUTTONSLECT;
     Intent i = null;
@@ -34,6 +34,7 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
         BUTTONGETPAIRED = (Button) findViewById(R.id.BUTTONGETPAIRED);
         SPINNERBD = (Spinner) findViewById(R.id.SPPINERBD);
         BUTTONSLECT = (Button) findViewById(R.id.BUTTONSLECT);
+        button = (Button) findViewById(R.id.button);
 
         i = new Intent(getApplicationContext(), AfterDiciveSelect.class);
 
@@ -69,6 +70,12 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 startActivity(i);
+            }
+        });
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getApplicationContext(),gage.class));
             }
         });
 

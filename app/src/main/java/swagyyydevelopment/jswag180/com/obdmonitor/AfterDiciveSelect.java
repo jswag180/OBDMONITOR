@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,8 +21,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.pires.obd.commands.engine.RPMCommand;
+import com.github.pires.obd.commands.protocol.EchoOffCommand;
+import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
+import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
+import com.github.pires.obd.commands.protocol.TimeoutCommand;
 import com.github.pires.obd.commands.temperature.AmbientAirTemperatureCommand;
 import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
+import com.github.pires.obd.enums.ObdProtocols;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +38,7 @@ import java.util.UUID;
 
 public class AfterDiciveSelect extends AppCompatActivity{
 
-    Button BUTTONSENDMSG,BUTTONDISCON,button2;
+    Button BUTTONSENDMSG,BUTTONDISCON,button2,BGAGE;
     EditText EDITTEXTINPUT;
     TextView TEXTVEIWRESULT;
     String address = null;
@@ -55,6 +61,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
         BUTTONDISCON = (Button) findViewById(R.id.BUTTONDISCON);
         EDITTEXTINPUT = (EditText) findViewById(R.id.EDITTEXTINPUT);
         TEXTVEIWRESULT = (TextView)findViewById(R.id.TEXTVIEWRESULT);
+        BGAGE = (Button) findViewById(R.id.BGAGE);
         button2 = (Button) findViewById(R.id.button2);
 
 
@@ -84,16 +91,31 @@ public class AfterDiciveSelect extends AppCompatActivity{
         button2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                EngineCoolantTemperatureCommand i;
+
                 try {
-                    i = new EngineCoolantTemperatureCommand();
-                    i.run(mmInStream,mmOutStream);
-                    TEXTVEIWRESULT.setText((int) i.getImperialUnit());//TODO play around with no using this command and how to get data from it
+                    new EchoOffCommand().run(mmInStream, mmOutStream);
+                    new LineFeedOffCommand().run(mmInStream, mmOutStream);
+                    new TimeoutCommand(125).run(mmInStream, mmOutStream);
+                    new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
+                    RPMCommand i;
+                    i = new RPMCommand();
+                    i.run(mmInStream,mmOutStream); //mmInStream,mmOutStream
+                    float d =i.getRPM();
+                    String unitToString = Float.toString(d);
+                    Toast.makeText(getApplicationContext(),  unitToString, Toast.LENGTH_LONG).show();
+                    //TEXTVEIWRESULT.setText((int) i.getImperialUnit());//TODO play around with no using this command and how to get data from it
 
                 } catch (Exception e) {
                     Toast.makeText(getApplicationContext(), e.toString(),
-                            Toast.LENGTH_SHORT).show();
+                            Toast.LENGTH_LONG).show();
                 }
+            }
+        });
+
+        BGAGE.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getApplicationContext(),gage.class));
             }
         });
 
@@ -226,7 +248,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
 
 
             }
-            new ConnectedThread().execute("a");
+            //new ConnectedThread().execute("a");
             progress.dismiss();
         }
     }

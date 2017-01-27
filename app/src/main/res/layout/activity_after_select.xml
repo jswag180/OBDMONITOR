@@ -62,5 +62,14 @@
         android:layout_marginBottom="67dp"
         android:id="@+id/button2" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/button2"
+        android:layout_toStartOf="@+id/button2"
+        android:layout_marginEnd="25dp"
+        android:id="@+id/BGAGE"
+        android:text="gage" />
+
 </RelativeLayout>
 
