@@ -100,8 +100,8 @@ public class AfterDiciveSelect extends AppCompatActivity{
                     RPMCommand i;
                     i = new RPMCommand();
                     i.run(mmInStream,mmOutStream); //mmInStream,mmOutStream
-                    float d =i.getRPM();
-                    String unitToString = Float.toString(d);
+                    int d = i.getRPM();
+                    String unitToString = Integer.toString(d);
                     Toast.makeText(getApplicationContext(),  unitToString, Toast.LENGTH_LONG).show();
                     //TEXTVEIWRESULT.setText((int) i.getImperialUnit());//TODO play around with no using this command and how to get data from it
 
