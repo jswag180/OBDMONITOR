@@ -19,7 +19,6 @@ import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
@@ -28,11 +27,9 @@ import com.github.pires.obd.commands.protocol.TimeoutCommand;
 import com.github.pires.obd.commands.temperature.AmbientAirTemperatureCommand;
 import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.UUID;
 
 
@@ -91,7 +88,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
         button2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                /*
                 try {
                     new EchoOffCommand().run(mmInStream, mmOutStream);
                     new LineFeedOffCommand().run(mmInStream, mmOutStream);
@@ -109,6 +106,8 @@ public class AfterDiciveSelect extends AppCompatActivity{
                     Toast.makeText(getApplicationContext(), e.toString(),
                             Toast.LENGTH_LONG).show();
                 }
+                */
+                new GetRpm().execute("a");
             }
         });
 
@@ -134,6 +133,11 @@ public class AfterDiciveSelect extends AppCompatActivity{
                         Toast.makeText(activity, msg.getData().getString("toast"),
                                 Toast.LENGTH_SHORT).show();
 
+                    }
+                    break;
+                case 2:
+                    if (null != activity) {
+                        TEXTVEIWRESULT.setText(msg.getData().getString("RES"));
                     }
                     break;
 
@@ -292,6 +296,46 @@ public class AfterDiciveSelect extends AppCompatActivity{
             }
 
             return s1;
+        }
+    }
+
+    private class GetRpm extends AsyncTask<String, String, String> {
+
+        @Override
+        protected String doInBackground(String... params) {
+
+
+            try {
+                new EchoOffCommand().run(mmInStream, mmOutStream);
+                new LineFeedOffCommand().run(mmInStream, mmOutStream);
+                new TimeoutCommand(125).run(mmInStream, mmOutStream);
+                new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            while (true) {
+                try {
+                    RPMCommand i;
+                    i = new RPMCommand();
+                    i.run(mmInStream, mmOutStream);
+                    int d = i.getRPM();
+                    String unitToString = Integer.toString(d);
+                    Message msg = mHandler.obtainMessage(1);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("RES", unitToString);
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    break;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    break;
+                }
+            }
+            return null;
         }
     }
 
