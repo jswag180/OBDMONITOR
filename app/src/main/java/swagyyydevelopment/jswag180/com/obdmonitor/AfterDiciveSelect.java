@@ -88,25 +88,6 @@ public class AfterDiciveSelect extends AppCompatActivity{
         button2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /*
-                try {
-                    new EchoOffCommand().run(mmInStream, mmOutStream);
-                    new LineFeedOffCommand().run(mmInStream, mmOutStream);
-                    new TimeoutCommand(125).run(mmInStream, mmOutStream);
-                    new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
-                    RPMCommand i;
-                    i = new RPMCommand();
-                    i.run(mmInStream,mmOutStream); //mmInStream,mmOutStream
-                    int d = i.getRPM();
-                    String unitToString = Integer.toString(d);
-                    Toast.makeText(getApplicationContext(),  unitToString, Toast.LENGTH_LONG).show();
-                    //TEXTVEIWRESULT.setText((int) i.getImperialUnit());//TODO play around with no using this command and how to get data from it
-
-                } catch (Exception e) {
-                    Toast.makeText(getApplicationContext(), e.toString(),
-                            Toast.LENGTH_LONG).show();
-                }
-                */
                 new GetRpm().execute("a");
             }
         });
@@ -114,7 +95,9 @@ public class AfterDiciveSelect extends AppCompatActivity{
         BGAGE.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(),gage.class));
+                Intent z = new Intent(getApplicationContext(), gage.class);
+                Socket.setSocket(btSocket);
+                startActivity(z);
             }
         });
 
@@ -202,17 +185,16 @@ public class AfterDiciveSelect extends AppCompatActivity{
             {
                 if (btSocket == null || !isBtConnected)
                 {
-                    myBluetooth = BluetoothAdapter.getDefaultAdapter();//get the mobile bluetooth device
-                    BluetoothDevice dispositivo = myBluetooth.getRemoteDevice(address);//connects to the device's address and checks if it's available
-                    btSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(myUUID);//create a RFCOMM (SPP) connection
+                    myBluetooth = BluetoothAdapter.getDefaultAdapter();
+                    BluetoothDevice dispositivo = myBluetooth.getRemoteDevice(address);
+                    btSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(myUUID);
                     BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
-                    btSocket.connect();//start connection
+                    btSocket.connect();
                 }
             }
             catch (IOException e)
             {
-                ConnectSuccess = false;//if the try failed, you can check the exception here
-                //Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_LONG).show();
+                ConnectSuccess = false;
             }
 
             return null;
@@ -227,7 +209,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
 
 
         @Override
-        protected void onPostExecute(String s) //after the doInBackground, it checks if everything went fine
+        protected void onPostExecute(String s)
         {
             super.onPostExecute(s);
 
@@ -263,13 +245,6 @@ public class AfterDiciveSelect extends AppCompatActivity{
 
         @Override
         protected String doInBackground(String... params) {
-
-            //mmBuffer = new byte[1024];
-            //int numBytes; // bytes returned from read()
-
-            // Keep listening to the InputStream until an exception occurs.
-            //Toast.makeText(getApplicationContext(), "RUNNING RUNNING", Toast.LENGTH_SHORT).show();
-            //TEXTVEIWRESULT.setText("RUNNING RUNNING");
             String s1 = "1";
             while (true) {
 
@@ -284,11 +259,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
                     bundle.putString("toast", s1);
                     msg.setData(bundle);
                     mHandler.sendMessage(msg);
-                    //Toast.makeText(getApplicationContext(), s1, Toast.LENGTH_SHORT).show();
-                    //Toasty(s1);
                 } catch (IOException e) {
-                    //Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
-                    //Toasty(e.toString());
                     break;
                 }
 
@@ -322,7 +293,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
                     i.run(mmInStream, mmOutStream);
                     int d = i.getRPM();
                     String unitToString = Integer.toString(d);
-                    Message msg = mHandler.obtainMessage(1);
+                    Message msg = mHandler.obtainMessage(2);
                     Bundle bundle = new Bundle();
                     bundle.putString("RES", unitToString);
                     msg.setData(bundle);
