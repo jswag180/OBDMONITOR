@@ -1,6 +1,5 @@
 package swagyyydevelopment.jswag180.com.obdmonitor;
 
-
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.os.AsyncTask;
@@ -8,11 +7,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.github.pires.obd.commands.engine.RPMCommand;
+import com.github.pires.obd.commands.fuel.FuelLevelCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
@@ -24,22 +22,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 
-public class gage extends AppCompatActivity{
+public class FuleInfo extends AppCompatActivity {
 
-    ImageView j;
-    TextView tvRpm;
-    BluetoothSocket socket;
+    TextView tvFeulLvl;
     InputStream mmInStream = null;
     OutputStream mmOutStream = null;
+    BluetoothSocket socket;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_gage);
-        ImageView i = (ImageView) findViewById(R.id.IMVTEST);
-        j = (ImageView) findViewById(R.id.IMVNED);
-        tvRpm = (TextView) findViewById(R.id.tvRpm);
-        //if(!(getIntent().getExtras().get("dev") == "true")) {
+        setContentView(R.layout.activity_fuel_info);
+
+        tvFeulLvl = (TextView) findViewById(R.id.tvFeulLvl);
+
         socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
         try {
 
@@ -49,8 +45,7 @@ public class gage extends AppCompatActivity{
         } catch (Exception e) {
             e.printStackTrace();
         }
-            new infoGrab().execute("");
-        //}
+        new getInfo().execute("");
     }
 
     public final Handler mHandler = new Handler() {
@@ -75,8 +70,8 @@ public class gage extends AppCompatActivity{
                     break;
                 case 3:
                     if (null != activity) {
-                        j.setRotation((msg.getData().getFloat("ROT")));
-                        tvRpm.setText(msg.getData().getString("RPM"));//msg.getData().getInt("RPM")
+                        //j.setRotation((msg.getData().getFloat("ROT")));
+                        tvFeulLvl.setText(msg.getData().getString("FUEL"));//msg.getData().getInt("RPM")
                     }
                     break;
 
@@ -84,7 +79,8 @@ public class gage extends AppCompatActivity{
         }
     };
 
-    public class infoGrab extends AsyncTask<String, Integer, Integer> {
+    public class getInfo extends AsyncTask<String, Integer, Integer> {
+
 
         @Override
         protected Integer doInBackground(String... params) {
@@ -101,15 +97,14 @@ public class gage extends AppCompatActivity{
             }
             while (true) {
                 try {
-                    RPMCommand i;
-                    i = new RPMCommand();
+                    FuelLevelCommand i;
+                    i = new FuelLevelCommand();
                     i.run(mmInStream, mmOutStream);
-                    int d = i.getRPM();
-                    String unitToString = Integer.toString(d);
+                    float d = i.getPercentage();
+                    String unitToString = Float.toString(d);
                     Message msg = mHandler.obtainMessage(3);
                     Bundle bundle = new Bundle();
-                    bundle.putFloat("ROT", scale(d, 0, 7000, -90, 90));
-                    bundle.putString("RPM", unitToString);
+                    bundle.putString("FUEL", unitToString);
                     msg.setData(bundle);
                     mHandler.sendMessage(msg);
 
@@ -122,13 +117,9 @@ public class gage extends AppCompatActivity{
                 }
             }
 
-            return 0;
+            return null;
         }
 
-        public float scale(final float valueIn, final float baseMin, final float baseMax, final float limitMin, final float limitMax) {
-            return ((limitMax - limitMin) * (valueIn - baseMin) / (baseMax - baseMin)) + limitMin;
-        }
+
     }
-
-
 }

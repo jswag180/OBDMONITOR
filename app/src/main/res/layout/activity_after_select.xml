@@ -71,5 +71,21 @@
         android:id="@+id/BGAGE"
         android:text="gage" />
 
+    <Button
+        android:text="Fuel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/TEXTVIEWRESULT"
+        android:layout_alignStart="@+id/BGAGE"
+        android:id="@+id/button3" />
+
+    <Button
+        android:text="Temps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/button3"
+        android:layout_toEndOf="@+id/button2"
+        android:id="@+id/btnTemp" />
+
 </RelativeLayout>
 

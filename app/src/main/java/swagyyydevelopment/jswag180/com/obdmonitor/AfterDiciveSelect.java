@@ -10,23 +10,20 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
 import com.github.pires.obd.commands.protocol.TimeoutCommand;
-import com.github.pires.obd.commands.temperature.AmbientAirTemperatureCommand;
-import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,7 +32,7 @@ import java.util.UUID;
 
 public class AfterDiciveSelect extends AppCompatActivity{
 
-    Button BUTTONSENDMSG,BUTTONDISCON,button2,BGAGE;
+    Button BUTTONSENDMSG, BUTTONDISCON, button2, BGAGE, button3, btnTemps;
     EditText EDITTEXTINPUT;
     TextView TEXTVEIWRESULT;
     String address = null;
@@ -60,6 +57,8 @@ public class AfterDiciveSelect extends AppCompatActivity{
         TEXTVEIWRESULT = (TextView)findViewById(R.id.TEXTVIEWRESULT);
         BGAGE = (Button) findViewById(R.id.BGAGE);
         button2 = (Button) findViewById(R.id.button2);
+        button3 = (Button) findViewById(R.id.button3);
+        btnTemps = (Button) findViewById(R.id.btnTemp);
 
 
         address = getIntent().getExtras().getString("EXTRA_ADDRESS");
@@ -92,12 +91,32 @@ public class AfterDiciveSelect extends AppCompatActivity{
             }
         });
 
+        button3.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent x = new Intent(getApplicationContext(), FuleInfo.class);
+                Socket.setSocket(btSocket);
+                startActivity(x);
+            }
+        });
+
         BGAGE.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent z = new Intent(getApplicationContext(), gage.class);
                 Socket.setSocket(btSocket);
+                z.putExtra("dev", "false");
                 startActivity(z);
+            }
+        });
+
+        btnTemps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent y = new Intent(getApplicationContext(), Temps.class);
+                Socket.setSocket(btSocket);
+                //z.putExtra("dev","false");
+                startActivity(y);
             }
         });
 

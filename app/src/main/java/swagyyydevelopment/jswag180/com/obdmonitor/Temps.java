@@ -8,38 +8,37 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.github.pires.obd.commands.engine.RPMCommand;
+import com.github.pires.obd.commands.engine.OilTempCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
 import com.github.pires.obd.commands.protocol.TimeoutCommand;
+import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+public class Temps extends AppCompatActivity {
 
-public class gage extends AppCompatActivity{
-
-    ImageView j;
-    TextView tvRpm;
     BluetoothSocket socket;
     InputStream mmInStream = null;
     OutputStream mmOutStream = null;
 
+    TextView txtENG, txtOIL;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_gage);
-        ImageView i = (ImageView) findViewById(R.id.IMVTEST);
-        j = (ImageView) findViewById(R.id.IMVNED);
-        tvRpm = (TextView) findViewById(R.id.tvRpm);
-        //if(!(getIntent().getExtras().get("dev") == "true")) {
+        setContentView(R.layout.activity_temps);
+
+        txtENG = (TextView) findViewById(R.id.txtENG);
+        txtOIL = (TextView) findViewById(R.id.txtOIL);
+
         socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
         try {
 
@@ -49,8 +48,7 @@ public class gage extends AppCompatActivity{
         } catch (Exception e) {
             e.printStackTrace();
         }
-            new infoGrab().execute("");
-        //}
+        new infoGrab().execute("");
     }
 
     public final Handler mHandler = new Handler() {
@@ -71,12 +69,9 @@ public class gage extends AppCompatActivity{
                 case 2:
                     if (null != activity) {
 
-                    }
-                    break;
-                case 3:
-                    if (null != activity) {
-                        j.setRotation((msg.getData().getFloat("ROT")));
-                        tvRpm.setText(msg.getData().getString("RPM"));//msg.getData().getInt("RPM")
+                        txtENG.setText("OIL" + System.getProperty("line.separator") + msg.getData().getString("ENG"));
+                        txtOIL.setText("ENG" + System.getProperty("line.separator") + msg.getData().getString("OIL"));
+
                     }
                     break;
 
@@ -101,15 +96,23 @@ public class gage extends AppCompatActivity{
             }
             while (true) {
                 try {
-                    RPMCommand i;
-                    i = new RPMCommand();
-                    i.run(mmInStream, mmOutStream);
-                    int d = i.getRPM();
-                    String unitToString = Integer.toString(d);
-                    Message msg = mHandler.obtainMessage(3);
+                    EngineCoolantTemperatureCommand i;
+                    i = new EngineCoolantTemperatureCommand();
+                    i.run(mmInStream, mmOutStream); // getting the Engine Coolant temp
+                    float d = i.getImperialUnit();
+                    String EngCoolToString = Float.toString(d);
+
+                    OilTempCommand k;
+                    k = new OilTempCommand();
+                    k.run(mmInStream, mmOutStream);
+                    float e = k.getImperialUnit();
+                    String OilCoolToString = Float.toString(e);
+
+
+                    Message msg = mHandler.obtainMessage(2);// start the bundle of data to the handler
                     Bundle bundle = new Bundle();
-                    bundle.putFloat("ROT", scale(d, 0, 7000, -90, 90));
-                    bundle.putString("RPM", unitToString);
+                    bundle.putString("ENG", EngCoolToString);
+                    bundle.putString("OIL", OilCoolToString);
                     msg.setData(bundle);
                     mHandler.sendMessage(msg);
 
@@ -125,10 +128,6 @@ public class gage extends AppCompatActivity{
             return 0;
         }
 
-        public float scale(final float valueIn, final float baseMin, final float baseMax, final float limitMin, final float limitMax) {
-            return ((limitMax - limitMin) * (valueIn - baseMin) / (baseMax - baseMin)) + limitMin;
-        }
     }
-
 
 }

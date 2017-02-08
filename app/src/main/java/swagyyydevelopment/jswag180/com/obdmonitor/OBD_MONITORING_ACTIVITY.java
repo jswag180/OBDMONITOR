@@ -2,10 +2,9 @@ package swagyyydevelopment.jswag180.com.obdmonitor;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -75,7 +74,9 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(),gage.class));
+                Intent b = new Intent(getApplicationContext(), gage.class);
+                b.putExtra("dev", "true");
+                startActivity(b);
             }
         });
 
