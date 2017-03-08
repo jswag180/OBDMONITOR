@@ -11,7 +11,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.github.pires.obd.commands.engine.OilTempCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
@@ -69,8 +68,8 @@ public class Temps extends AppCompatActivity {
                 case 2:
                     if (null != activity) {
 
-                        txtENG.setText("OIL" + System.getProperty("line.separator") + msg.getData().getString("ENG"));
-                        txtOIL.setText("ENG" + System.getProperty("line.separator") + msg.getData().getString("OIL"));
+                        txtOIL.setText(msg.getData().getString("OIL"));//"OIL" + System.getProperty("line.separator") +
+                        txtENG.setText(msg.getData().getString("ENG"));//"ENG"  + System.getProperty("line.separator")
 
                     }
                     break;
@@ -102,11 +101,11 @@ public class Temps extends AppCompatActivity {
                     float d = i.getImperialUnit();
                     String EngCoolToString = Float.toString(d);
 
-                    OilTempCommand k;
-                    k = new OilTempCommand();
+                    ENGGETCURENTGEAR k;
+                    k = new ENGGETCURENTGEAR();
                     k.run(mmInStream, mmOutStream);
-                    float e = k.getImperialUnit();
-                    String OilCoolToString = Float.toString(e);
+                    //float e = k.;//getImperialUnit()
+                    String OilCoolToString = k.getFormattedResult();//k.getFormattedResult() Float.toString(e)
 
 
                     Message msg = mHandler.obtainMessage(2);// start the bundle of data to the handler

@@ -34,6 +34,10 @@
 
 
         </activity>
+        <activity android:name=".ShiftLights">
+
+
+        </activity>
     </application>
 
 </manifest>

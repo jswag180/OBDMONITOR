@@ -32,7 +32,7 @@ import java.util.UUID;
 
 public class AfterDiciveSelect extends AppCompatActivity{
 
-    Button BUTTONSENDMSG, BUTTONDISCON, button2, BGAGE, button3, btnTemps;
+    Button BUTTONSENDMSG, BUTTONDISCON, button2, BGAGE, button3, btnTemps, btnshiftLight;
     EditText EDITTEXTINPUT;
     TextView TEXTVEIWRESULT;
     String address = null;
@@ -44,7 +44,6 @@ public class AfterDiciveSelect extends AppCompatActivity{
     BluetoothSocket btSocket = null;
     private boolean isBtConnected = false;
     boolean disCon = false;
-    boolean suc = true;
     static final UUID myUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");//UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")  UUID.randomUUID()
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +54,7 @@ public class AfterDiciveSelect extends AppCompatActivity{
         BUTTONDISCON = (Button) findViewById(R.id.BUTTONDISCON);
         EDITTEXTINPUT = (EditText) findViewById(R.id.EDITTEXTINPUT);
         TEXTVEIWRESULT = (TextView)findViewById(R.id.TEXTVIEWRESULT);
+        btnshiftLight = (Button) findViewById(R.id.btnSiftLight);
         BGAGE = (Button) findViewById(R.id.BGAGE);
         button2 = (Button) findViewById(R.id.button2);
         button3 = (Button) findViewById(R.id.button3);
@@ -117,6 +117,15 @@ public class AfterDiciveSelect extends AppCompatActivity{
                 Socket.setSocket(btSocket);
                 //z.putExtra("dev","false");
                 startActivity(y);
+            }
+        });
+
+        btnshiftLight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent a = new Intent(getApplicationContext(), ShiftLights.class);
+                Socket.setSocket(btSocket);
+                startActivity(a);
             }
         });
 
@@ -328,9 +337,4 @@ public class AfterDiciveSelect extends AppCompatActivity{
             return null;
         }
     }
-
     }
-
-
-
-

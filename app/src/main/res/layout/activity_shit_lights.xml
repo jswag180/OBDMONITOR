@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tvRPM"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="71dp" />
+
+    <ImageView
+        android:id="@+id/ivLGreen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/tvRPM"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="22dp"
+        android:visibility="invisible"
+        app:srcCompat="@drawable/green" />
+
+    <ImageView
+        android:id="@+id/ivRGreen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@+id/ivLOrnge"
+        android:visibility="invisible"
+        app:srcCompat="@drawable/green" />
+
+    <ImageView
+        android:id="@+id/ivLOrnge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/ivLGreen"
+        android:layout_toEndOf="@+id/ivLGreen"
+        android:visibility="invisible"
+        app:srcCompat="@drawable/orendge" />
+
+    <ImageView
+        android:id="@+id/ivROrnge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/ivRGreen"
+        android:layout_toStartOf="@+id/ivRGreen"
+        android:visibility="invisible"
+        app:srcCompat="@drawable/orendge" />
+
+    <ImageView
+        android:id="@+id/ivRed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/ivLOrnge"
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible"
+        app:srcCompat="@drawable/red" />
+
+</RelativeLayout>
