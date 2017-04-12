@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="swagyyydevelopment.jswag180.com.obdmonitor">
-    <uses-permission android:name="android.permission.BLUETOOTH"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED"/>
+
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
@@ -18,26 +20,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".AfterDiciveSelect">
+        <activity android:name=".AfterDiciveSelect" />
+        <activity android:name=".gage" />
+        <activity android:name=".FuleInfo" />
+        <activity android:name=".Temps" />
+        <activity
+            android:name=".ShiftLights"
+            android:screenOrientation="landscape" />
 
-
-        </activity>
-        <activity android:name=".gage">
-
-
-        </activity>
-        <activity android:name=".FuleInfo">
-
-
-        </activity>
-        <activity android:name=".Temps">
-
-
-        </activity>
-        <activity android:name=".ShiftLights">
-
-
-        </activity>
     </application>
 
 </manifest>

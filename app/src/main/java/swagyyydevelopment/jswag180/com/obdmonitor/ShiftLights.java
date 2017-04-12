@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
@@ -34,6 +35,8 @@ public class ShiftLights extends AppCompatActivity {
     OutputStream mmOutStream = null;
     Context context = this;
     MediaPlayer mp;
+    String v;
+    protected PowerManager.WakeLock mWakeLock;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,16 +51,32 @@ public class ShiftLights extends AppCompatActivity {
         ivROrnge = (ImageView) findViewById(R.id.ivROrnge);
         ivRed = (ImageView) findViewById(R.id.ivRed);
 
-        mp = MediaPlayer.create(context, R.raw.baloney);
-        socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
-        try {
-            mmInStream = socket.getInputStream();
-            mmOutStream = socket.getOutputStream();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        new infoGrab().execute("");
+        final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
+        this.mWakeLock.acquire();
 
+        mp = MediaPlayer.create(context, R.raw.beep);
+        if (devMode.getDevMode()) {
+            synchronized (this) {
+                new demo().execute("asd");
+            }
+        } else {
+            socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
+            try {
+                mmInStream = socket.getInputStream();
+                mmOutStream = socket.getOutputStream();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            new infoGrab().execute("");
+        }
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        this.mWakeLock.release();
+        super.onDestroy();
     }
 
     public final Handler mHandler = new Handler() {
@@ -77,8 +96,19 @@ public class ShiftLights extends AppCompatActivity {
                     break;
                 case 2:
                     if (null != activity) {
-                        String v = msg.getData().getString("RPM");
+
+                        v = msg.getData().getString("RPM");
+
                         tvRPM.setText(v);
+
+                        if (isBetween(Integer.parseInt(v), 0, 3665)) {
+                            //clear
+                            ivLGreen.setVisibility(View.INVISIBLE);
+                            ivRGreen.setVisibility(View.INVISIBLE);
+                            ivLOrnge.setVisibility(View.INVISIBLE);
+                            ivROrnge.setVisibility(View.INVISIBLE);
+                            ivRed.setVisibility(View.INVISIBLE);
+                        }
 
                         if (isBetween(Integer.parseInt(v), 3666, 4331)) {//666.7 3666 4332 4998
 
@@ -112,7 +142,7 @@ public class ShiftLights extends AppCompatActivity {
                                 if (mp.isPlaying()) {
                                     mp.stop();
                                     mp.release();
-                                    mp = MediaPlayer.create(context, R.raw.baloney);
+                                    mp = MediaPlayer.create(context, R.raw.beep);
                                 }
                                 mp.start();
                             } catch (Exception e) {
@@ -120,7 +150,6 @@ public class ShiftLights extends AppCompatActivity {
                             }
 
                         }
-
 
                     }
                     break;
@@ -174,6 +203,54 @@ public class ShiftLights extends AppCompatActivity {
         }
 
 
+    }
+
+    public class demo extends AsyncTask<String, Integer, Integer> {
+
+        @Override
+        protected Integer doInBackground(String... params) {
+            int counter = 0;
+            String resut = "0";
+            synchronized (this) {
+                while (true) {
+                    synchronized (this) {
+                        try {
+                            wait(1000);
+
+                            counter++;
+
+                            if (counter == 1) {
+                                resut = "3666";
+                            } else if (counter == 2) {
+                                resut = "4332";
+                            } else if (counter == 3) {
+                                resut = "5000";
+                            } else if (counter == 4) {
+                                counter = 0;
+                                resut = "0";
+                            }
+
+                            Message msg = mHandler.obtainMessage(2);
+                            Bundle bundle = new Bundle();
+                            bundle.putString("RPM", resut);
+                            msg.setData(bundle);
+                            mHandler.sendMessage(msg);
+                            //wait(5000);
+
+                        } catch (Exception e) {
+                            Message msg = mHandler.obtainMessage(1);
+                            Bundle bundle = new Bundle();
+                            bundle.putString("toast", e.toString());
+                            msg.setData(bundle);
+                            mHandler.sendMessage(msg);
+                            break;
+                        }
+                    }
+                }
+
+                return null;
+            }
+        }
     }
 
 }

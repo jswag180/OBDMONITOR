@@ -68,14 +68,15 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
         BUTTONSLECT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                devMode.setDevMode(false);
                 startActivity(i);
             }
         });
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent b = new Intent(getApplicationContext(), gage.class);
-                b.putExtra("dev", "true");
+                Intent b = new Intent(getApplicationContext(), ShiftLights.class);
+                devMode.setDevMode(true);
                 startActivity(b);
             }
         });
