@@ -31,6 +31,7 @@ public class Temps extends AppCompatActivity {
     OutputStream mmOutStream = null;
     protected PowerManager.WakeLock mWakeLock;
     TextView txtENG, txtOIL;
+    boolean deBugMode = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,6 +57,7 @@ public class Temps extends AppCompatActivity {
         synchronized (this) {
             new infoGrab().execute("");
         }
+
     }
 
     @Override
@@ -76,14 +78,17 @@ public class Temps extends AppCompatActivity {
                     if (null != activity) {
                         Toast.makeText(activity, msg.getData().getString("toast"),
                                 Toast.LENGTH_SHORT).show();
+                        if (socket.isConnected()) {
+                            finish();
+                        }
 
                     }
                     break;
                 case 2:
                     if (null != activity) {
 
-                        txtOIL.setText("Intake PSI" + "\n" + msg.getData().getString("OIL"));//"OIL" + System.getProperty("line.separator") +
-                        txtENG.setText("Coolant" + "\n" + msg.getData().getString("ENG"));//"ENG"  + System.getProperty("line.separator")
+                        txtOIL.setText("Intake" + "\n" + "PSI" + "\n" + msg.getData().getString("OIL"));//"OIL" + System.getProperty("line.separator") +
+                        txtENG.setText("\n" + "Coolant" + "\n" + msg.getData().getString("ENG"));//"ENG"  + System.getProperty("line.separator")
 
                     }
                     break;
@@ -115,7 +120,7 @@ public class Temps extends AppCompatActivity {
                         i = new EngineCoolantTemperatureCommand();
                         i.run(mmInStream, mmOutStream); // getting the Engine Coolant temp
                         float d = i.getImperialUnit();
-                        String EngCoolToString = Float.toString(d);
+                        String EngCoolToString = Integer.toString((int) d);
 
                         IntakeManifoldPressureCommand k;
                         k = new IntakeManifoldPressureCommand();
@@ -132,25 +137,39 @@ public class Temps extends AppCompatActivity {
                         mHandler.sendMessage(msg);
 
                     } catch (InterruptedException e) {
-                        Message msg = mHandler.obtainMessage(1);
-                        Bundle bundle = new Bundle();
-                        bundle.putString("toast", e.toString());
-                        msg.setData(bundle);
-                        mHandler.sendMessage(msg);
-                        break;
+                        if (deBugMode) {
+                            Message msg = mHandler.obtainMessage(1);
+                            Bundle bundle = new Bundle();
+                            bundle.putString("toast", e.toString());
+                            msg.setData(bundle);
+                            mHandler.sendMessage(msg);
+                        }
+                        //break;
                     } catch (IOException e) {
-                        Message msg = mHandler.obtainMessage(1);
-                        Bundle bundle = new Bundle();
-                        bundle.putString("toast", e.toString());
-                        msg.setData(bundle);
-                        mHandler.sendMessage(msg);
+                        if (deBugMode) {
+                            Message msg = mHandler.obtainMessage(1);
+                            Bundle bundle = new Bundle();
+                            bundle.putString("toast", e.toString());
+                            msg.setData(bundle);
+                            mHandler.sendMessage(msg);
+                        }
+                        // break;
+                    }
+
+                    if (!socket.isConnected()) {
                         break;
                     }
+
                 }
             }
             return 0;
         }
 
+        @Override
+        protected void onPostExecute(Integer integer) {
+            super.onPostExecute(integer);
+            //new infoGrab().execute("asd");
+        }
     }
 
 }
