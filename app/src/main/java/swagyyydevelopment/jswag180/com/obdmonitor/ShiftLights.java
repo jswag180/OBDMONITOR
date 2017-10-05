@@ -36,6 +36,7 @@ public class ShiftLights extends AppCompatActivity {
     Context context = this;
     MediaPlayer mp;
     String v;
+    RPMCommand i;
     protected PowerManager.WakeLock mWakeLock;
 
     @Override
@@ -172,15 +173,12 @@ public class ShiftLights extends AppCompatActivity {
                 new LineFeedOffCommand().run(mmInStream, mmOutStream);
                 new TimeoutCommand(125).run(mmInStream, mmOutStream);
                 new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+                i = new RPMCommand();
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
-            while (true) {
+            while (true) {//TODO make calss that all can call to put a dialog up that it has stop pulling data
                 try {
-                    RPMCommand i;
-                    i = new RPMCommand();
                     i.run(mmInStream, mmOutStream);
                     int d = i.getRPM();
                     String unitToString = Integer.toString(d);

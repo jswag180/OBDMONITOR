@@ -3,7 +3,7 @@ package swagyyydevelopment.jswag180.com.obdmonitor;
 
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.os.AsyncTask;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.pires.obd.commands.ObdMultiCommand;
 import com.github.pires.obd.commands.pressure.IntakeManifoldPressureCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
@@ -31,7 +32,12 @@ public class Temps extends AppCompatActivity {
     OutputStream mmOutStream = null;
     protected PowerManager.WakeLock mWakeLock;
     TextView txtENG, txtOIL;
-    boolean deBugMode = false;
+    boolean deBugMode = true;
+    boolean isRunning = false;
+    Context context = this;
+    String EngCoolToString, OilCoolToString;
+    ObdMultiCommand mult = new ObdMultiCommand();
+    Handler tempsHandler = new Handler();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,17 +51,24 @@ public class Temps extends AppCompatActivity {
         this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
         this.mWakeLock.acquire();
 
-        socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
-        try {
 
-            mmInStream = socket.getInputStream();
-            mmOutStream = socket.getOutputStream();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         synchronized (this) {
-            new infoGrab().execute("");
+            try {
+                socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
+                mmInStream = socket.getInputStream();
+                mmOutStream = socket.getOutputStream();
+                new EchoOffCommand().run(mmInStream, mmOutStream);
+                new LineFeedOffCommand().run(mmInStream, mmOutStream);
+                new TimeoutCommand(125).run(mmInStream, mmOutStream);
+                new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
+                mult.add(new EngineCoolantTemperatureCommand());
+                mult.add(new IntakeManifoldPressureCommand());
+                tempsHandler.postDelayed(obdCom, 0);
+            } catch (Exception e) {
+
+            }
+            isRunning = true;
+
         }
 
     }
@@ -87,8 +100,10 @@ public class Temps extends AppCompatActivity {
                 case 2:
                     if (null != activity) {
 
-                        txtOIL.setText("Intake" + "\n" + "PSI" + "\n" + msg.getData().getString("OIL"));//"OIL" + System.getProperty("line.separator") +
-                        txtENG.setText("\n" + "Coolant" + "\n" + msg.getData().getString("ENG"));//"ENG"  + System.getProperty("line.separator")
+                        String[] parts = msg.getData().getString("OIL").split(",");
+                        //Toast.makeText(activity, msg.getData().getString("OIL"), Toast.LENGTH_SHORT).show();
+                        txtOIL.setText("Intake" + "\n" + "PSI" + "\n" + parts[1]);//"OIL" + System.getProperty("line.separator") +
+                        txtENG.setText("\n" + "Coolant" + "\n" + parts[0]);//"ENG"  + System.getProperty("line.separator")
 
                     }
                     break;
@@ -97,79 +112,41 @@ public class Temps extends AppCompatActivity {
         }
     };
 
-    public class infoGrab extends AsyncTask<String, Integer, Integer> {
-
+    Runnable obdCom = new Runnable() {
         @Override
-        protected Integer doInBackground(String... params) {
-
-            try {
-                new EchoOffCommand().run(mmInStream, mmOutStream);
-                new LineFeedOffCommand().run(mmInStream, mmOutStream);
-                new TimeoutCommand(125).run(mmInStream, mmOutStream);
-                new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        public void run() {
             synchronized (this) {
-                while (true) {
+                try {
+                    mult.sendCommands(mmInStream, mmOutStream);
+                    Message msg = mHandler.obtainMessage(2);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("OIL", mult.getFormattedResult());
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
+                } catch (IOException | InterruptedException e) {
+                    sendToast(e.toString());
+                    tempsHandler.removeCallbacks(obdCom);
+                    Intent intentConServise = new Intent(context, BtCon.class);
+                    startService(intentConServise);
                     try {
-                        wait(100);
-                        EngineCoolantTemperatureCommand i;
-                        i = new EngineCoolantTemperatureCommand();
-                        i.run(mmInStream, mmOutStream); // getting the Engine Coolant temp
-                        float d = i.getImperialUnit();
-                        String EngCoolToString = Integer.toString((int) d);
-
-                        IntakeManifoldPressureCommand k;
-                        k = new IntakeManifoldPressureCommand();
-                        k.run(mmInStream, mmOutStream);
-                        //float e = k.;//getImperialUnit()
-                        String OilCoolToString = k.getFormattedResult();//k.getFormattedResult() Float.toString(e)
-
-
-                        Message msg = mHandler.obtainMessage(2);// start the bundle of data to the handler
-                        Bundle bundle = new Bundle();
-                        bundle.putString("ENG", EngCoolToString);
-                        bundle.putString("OIL", OilCoolToString);
-                        msg.setData(bundle);
-                        mHandler.sendMessage(msg);
-
-                    } catch (InterruptedException e) {
-                        if (deBugMode) {
-                            Message msg = mHandler.obtainMessage(1);
-                            Bundle bundle = new Bundle();
-                            bundle.putString("toast", e.toString());
-                            msg.setData(bundle);
-                            mHandler.sendMessage(msg);
-                        }
-                        //break;
-                    } catch (IOException e) {
-                        if (deBugMode) {
-                            Message msg = mHandler.obtainMessage(1);
-                            Bundle bundle = new Bundle();
-                            bundle.putString("toast", e.toString());
-                            msg.setData(bundle);
-                            mHandler.sendMessage(msg);
-                        }
-                        // break;
+                        wait(500);
+                    } catch (InterruptedException e1) {
+                        sendToast(e1.toString());
                     }
-
-                    if (!socket.isConnected()) {
-                        break;
-                    }
-
+                    socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
+                    tempsHandler.postDelayed(obdCom, 0);
                 }
+                tempsHandler.postDelayed(this, 0);
             }
-            return 0;
         }
+    };
 
-        @Override
-        protected void onPostExecute(Integer integer) {
-            super.onPostExecute(integer);
-            //new infoGrab().execute("asd");
-        }
+    public void sendToast(String message) {
+        Message msg = mHandler.obtainMessage(1);
+        Bundle bundle = new Bundle();
+        bundle.putString("toast", message);
+        msg.setData(bundle);
+        mHandler.sendMessage(msg);
     }
 
 }

@@ -2,6 +2,7 @@ package swagyyydevelopment.jswag180.com.obdmonitor;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -23,6 +24,7 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
     Button BUTTONGETPAIRED,button;
     Spinner SPINNERBD;
     Button BUTTONSLECT;
+    Context context = this;
     Intent i = null;
 
     @Override
@@ -34,6 +36,7 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
         SPINNERBD = (Spinner) findViewById(R.id.SPPINERBD);
         BUTTONSLECT = (Button) findViewById(R.id.BUTTONSLECT);
         button = (Button) findViewById(R.id.button);
+
 
         i = new Intent(getApplicationContext(), AfterDiciveSelect.class);
 
@@ -72,16 +75,19 @@ public class OBD_MONITORING_ACTIVITY extends AppCompatActivity {
                 startActivity(i);
             }
         });
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                Intent b = new Intent(getApplicationContext(), ShiftLights.class);
-                devMode.setDevMode(true);
+            public void onClick(View v) {//Testing
+                Intent b = new Intent(getApplicationContext(), Fueling.class);
+                //devMode.setDevMode(true);
                 startActivity(b);
+                //Intent intent = new Intent(context, BtCon.class);
+                //startService(intent);
             }
         });
 
-    }//16
+    }
 
     private void pairedDevicesList()
     {

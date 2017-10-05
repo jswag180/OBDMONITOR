@@ -2,37 +2,37 @@ package swagyyydevelopment.jswag180.com.obdmonitor;
 
 import com.github.pires.obd.commands.ObdCommand;
 
-public class ENGGETCURENTGEAR extends ObdCommand {
+public class BatteryVoltzCommand extends ObdCommand {
 
-    private int gear = 0;
+    private String data = "";
 
-    public ENGGETCURENTGEAR() {
+    public BatteryVoltzCommand() {
 
-        super("11 B3");
+        super("AT RV");
 
     }
 
-    public ENGGETCURENTGEAR(ENGGETCURENTGEAR other) {
+    public BatteryVoltzCommand(BatteryVoltzCommand other) {
         super(other);
     }
 
     @Override
     protected void performCalculations() {
-        gear = buffer.get(2);// - 40
+        data = String.valueOf(buffer.get(2));// - 40
     }
 
     @Override
     public String getFormattedResult() {
-        return Integer.toString(gear);
+        return data;
     }
 
     @Override
     public String getCalculatedResult() {
-        return null;
+        return data;
     }
 
     @Override
     public String getName() {
-        return "GETGEAR";
+        return "GETBETTVOLTZ";
     }
 }
