@@ -23,11 +23,8 @@ import com.github.pires.obd.commands.temperature.AmbientAirTemperatureCommand;
 import com.github.pires.obd.commands.temperature.EngineCoolantTemperatureCommand;
 import com.github.pires.obd.enums.ObdProtocols;
 
-import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -37,7 +34,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
 
 public class DataLogger extends Activity {
 
@@ -52,8 +54,8 @@ public class DataLogger extends Activity {
     OutputStream mmOutStream = null;
     int place = 0;
     boolean isRunning = false;
-    static int IntakeRow, CoolantRow, ExternalRow, BattaryRow, TimeRow;
     static boolean IntakeTMP, CoolantTMP, ExTMP, BatVoltz;
+    static Map<String, Object[]> dat = new HashMap<String, Object[]>();
 
     private static Workbook wb;
     private static File file;
@@ -111,9 +113,9 @@ public class DataLogger extends Activity {
             public void onClick(View v) {
                 isRunning = false;
                 try {
-                    DataLogging.closeExcelFile();
+                    DataLogging.closeExcelFile(dat);
                 } catch (Exception e) {
-                    Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG);
+                    Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -122,7 +124,7 @@ public class DataLogger extends Activity {
 
     @Override
     protected void onDestroy() {
-        DataLogging.closeExcelFile();
+        DataLogging.closeExcelFile(dat);
         this.mWakeLock.release();
         super.onDestroy();
     }
@@ -159,6 +161,7 @@ public class DataLogger extends Activity {
         protected Void doInBackground(Void... params) {
 
             DataLogging.getExcelFile(context, "DataLog.xls");
+            dat.put("rowNum", new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts"});
 
             AirIntakeTemperatureCommand intake = new AirIntakeTemperatureCommand();
             EngineCoolantTemperatureCommand coolant = new EngineCoolantTemperatureCommand();
@@ -172,24 +175,32 @@ public class DataLogger extends Activity {
 
                         wait(5000);
 
+                        if (!isRunning) {
+                            break;
+                        }
+
                         place++;
+
+                        String coolantTMP = "0", intakeTMP = "0", externalTMP = "0", batteryVolts = "0";
 
                         if (IntakeTMP) {
                             intake.run(mmInStream, mmOutStream);
-                            DataLogging.writeExcelFile(String.valueOf((int) intake.getImperialUnit()), IntakeRow, true, place, false);
+                            intakeTMP = String.valueOf(intake.getImperialUnit());
                         } else if (CoolantTMP) {
                             coolant.run(mmInStream, mmOutStream);
-                            DataLogging.writeExcelFile(String.valueOf((int) coolant.getImperialUnit()), CoolantRow, true, place, false);
+                            coolantTMP = String.valueOf(coolant.getImperialUnit());
                         } else if (ExTMP) {
                             external.run(mmInStream, mmOutStream);
-                            DataLogging.writeExcelFile(String.valueOf((int) external.getImperialUnit()), ExternalRow, true, place, false);
+                            externalTMP = String.valueOf(external.getImperialUnit());
                         } else if (BatVoltz) {
                             battery.run(mmInStream, mmOutStream);
-                            DataLogging.writeExcelFile(String.valueOf(battery.getFormattedResult()), BattaryRow, true, place, false);
+                            batteryVolts = battery.getFormattedResult();
                         }
+
                         long timeStamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());//Unix Timestamp
                         java.util.Date time = new java.util.Date(timeStamp * 1000);//Unix to normal time
-                        DataLogging.writeExcelFile(time.toString(), TimeRow, true, place, false);
+
+                        DataLogging.writeExcelFile(String.valueOf(time), coolantTMP, intakeTMP, externalTMP, batteryVolts, place);
 
                         Message msg = mHandler.obtainMessage(1);
                         Bundle bundle = new Bundle();
@@ -215,7 +226,7 @@ public class DataLogger extends Activity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            DataLogging.closeExcelFile();
+            DataLogging.closeExcelFile(dat);
             super.onPostExecute(aVoid);
         }
     }
@@ -229,171 +240,44 @@ public class DataLogger extends Activity {
 
             file = new File(context.getExternalFilesDir(null), fileName);
 
-            //if (!file.exists()) {
-
             //New Workbook
             wb = new HSSFWorkbook();
-
-            //Cell c = null;
-
-            //Cell style for header row
-            //CellStyle cs = wb.createCellStyle();
-            //cs.setFillForegroundColor(HSSFColor.WHITE.index);
-            //cs.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
 
             //New Sheet
             mySheet = null;
             mySheet = wb.createSheet("logSheet1");
 
-            // Generate column headings
-            Cell c = null;
-
-            CellStyle cs = wb.createCellStyle();
-            cs.setFillForegroundColor(HSSFColor.WHITE.index);
-            cs.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
-
-            Row row1 = null;
-
-            int nextRow = 0;
-
-            if (IntakeTMP) {
-                if (nextRow == 0) {
-                    row1 = mySheet.createRow(nextRow);
-                } else {
-                    nextRow++;
-                    row1 = mySheet.createRow(nextRow);
-                }
-
-                IntakeRow = nextRow;
-
-                c = row1.createCell(0);
-                c.setCellValue("IntakeTMP");
-                c.setCellStyle(cs);
-
-            }
-
-
-            if (CoolantTMP) {
-                if (nextRow == 0) {
-                    row1 = mySheet.createRow(nextRow);
-                } else {
-                    nextRow++;
-                    row1 = mySheet.createRow(nextRow);
-                }
-
-                CoolantRow = nextRow;
-
-                c = row1.createCell(0);//colum
-                c.setCellValue("CoolantTMP");
-                c.setCellStyle(cs);
-            }
-
-
-            if (ExTMP) {
-                if (nextRow == 0) {
-                    row1 = mySheet.createRow(nextRow);
-                } else {
-                    nextRow++;
-                    row1 = mySheet.createRow(nextRow);
-                }
-
-                ExternalRow = nextRow;
-
-                c = row1.createCell(0);//colum
-                c.setCellValue("ExternalTMP");
-                c.setCellStyle(cs);
-            }
-
-            if (nextRow == 0) {
-                row1 = mySheet.createRow(nextRow);
-            } else {
-                nextRow++;
-                row1 = mySheet.createRow(nextRow);
-            }
-
-            TimeRow = nextRow;
-
-            c = row1.createCell(0);//colum
-            c.setCellValue("Time");
-            c.setCellStyle(cs);
-
-
-            //}
-                /*
-            else {
-
-                try {
-                    FileInputStream myInput = new FileInputStream(file);
-                    POIFSFileSystem myFileSystem = new POIFSFileSystem(myInput);
-                    HSSFWorkbook myWorkBook = new HSSFWorkbook(myFileSystem);
-                    mySheet = myWorkBook.getSheet("logSheet1");
-                    //Toast.makeText(context, "Found sheet", Toast.LENGTH_SHORT).show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-
-            }
-            */
-            /*
-            try {
-                os = new FileOutputStream(file);
-                wb.write(os);
-                success = true;
-            } catch (IOException e) {
-                Toast.makeText(context, "Error writing " + e, Toast.LENGTH_SHORT).show();
-            } catch (Exception e) {
-                Toast.makeText(context, "Failed to save file" + e, Toast.LENGTH_SHORT).show();
-            } finally {
-                try {
-                    //if (null != os)
-                    //os.close();
-                } catch (Exception ex) {
-                    //Toast.makeText(context, "Found sheet =" + ex, Toast.LENGTH_SHORT).show();
-                }
-            }
-            */
             return success;
 
         }
 
-        public static void writeExcelFile(String string, int row, boolean Rowexists, int colum, boolean Colexists) {
+        public static void writeExcelFile(String timeStamp, String coolentTMP, String intakeTMP, String extrnalTMP, String batteryVolts, int rowNum) {
 
-            Cell c = null;
+            dat.put(String.valueOf(rowNum), new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts});
 
-            CellStyle cs = wb.createCellStyle();
-            cs.setFillForegroundColor(HSSFColor.WHITE.index);
-            cs.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
-
-            Row row1 = null;
-
-            if (Rowexists) {
-                row1 = mySheet.getRow(row);
-            } else {
-                row1 = mySheet.createRow(row);
-            }
-            if (!Colexists) {
-                c = row1.createCell(colum);
-            } else {
-                c = row1.getCell(colum);
-            }
-            c.setCellValue(string);
-            c.setCellStyle(cs);
-
-        /*
-            try {
-
-                wb.write(os);
-                Log.w("FileUtils", "Writing file" + file);
-            } catch (IOException e) {
-                Log.w("FileUtils", "Error writing " + file, e);
-            } catch (Exception e) {
-                Log.w("FileUtils", "Failed to save file", e);
-            }
-            */
         }
 
-        public static void closeExcelFile() {
+        public static void closeExcelFile(Map<String, Object[]> data) {
+
+
+            Set<String> keyset = data.keySet();
+            int rownum = 0;
+            for (String key : keyset) {
+                Row row = mySheet.createRow(rownum++);
+                Object[] objArr = data.get(key);
+                int cellnum = 0;
+                for (Object obj : objArr) {
+                    Cell cell = row.createCell(cellnum++);
+                    if (obj instanceof Date)
+                        cell.setCellValue((Date) obj);
+                    else if (obj instanceof Boolean)
+                        cell.setCellValue((Boolean) obj);
+                    else if (obj instanceof String)
+                        cell.setCellValue((String) obj);
+                    else if (obj instanceof Double)
+                        cell.setCellValue((Double) obj);
+                }
+            }
 
             try {
                 os = new FileOutputStream(file);
