@@ -55,7 +55,7 @@ public class DataLogger extends Activity {
     int place = 0;
     boolean isRunning = false;
     static boolean IntakeTMP, CoolantTMP, ExTMP, BatVoltz;
-    static Map<String, Object[]> dat = new HashMap<String, Object[]>();
+    static Map<Integer, Object[]> dat = new HashMap<Integer, Object[]>();
 
     private static Workbook wb;
     private static File file;
@@ -161,7 +161,6 @@ public class DataLogger extends Activity {
         protected Void doInBackground(Void... params) {
 
             DataLogging.getExcelFile(context, "DataLog.xls");
-            dat.put("rowNum", new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts"});
 
             AirIntakeTemperatureCommand intake = new AirIntakeTemperatureCommand();
             EngineCoolantTemperatureCommand coolant = new EngineCoolantTemperatureCommand();
@@ -181,7 +180,7 @@ public class DataLogger extends Activity {
 
                         place++;
 
-                        String coolantTMP = "0", intakeTMP = "0", externalTMP = "0", batteryVolts = "0";
+                        String coolantTMP = "Null", intakeTMP = "Null", externalTMP = "Null", batteryVolts = "Null";
 
                         if (IntakeTMP) {
                             intake.run(mmInStream, mmOutStream);
@@ -247,24 +246,26 @@ public class DataLogger extends Activity {
             mySheet = null;
             mySheet = wb.createSheet("logSheet1");
 
+            //dat.put("rowNum", new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts"});
+
             return success;
 
         }
 
         public static void writeExcelFile(String timeStamp, String coolentTMP, String intakeTMP, String extrnalTMP, String batteryVolts, int rowNum) {
 
-            dat.put(String.valueOf(rowNum), new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts});
+            dat.put(rowNum, new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts});
 
         }
 
-        public static void closeExcelFile(Map<String, Object[]> data) {
+        public static void closeExcelFile(Map<Integer, Object[]> data) {
 
 
-            Set<String> keyset = data.keySet();
+            Set<Integer> keyset = data.keySet();
             int rownum = 0;
-            for (String key : keyset) {
+            for (int i = 0; i < keyset.size(); i++) { //for (String key : keyset) {
                 Row row = mySheet.createRow(rownum++);
-                Object[] objArr = data.get(key);
+                Object[] objArr = data.get(i);
                 int cellnum = 0;
                 for (Object obj : objArr) {
                     Cell cell = row.createCell(cellnum++);
