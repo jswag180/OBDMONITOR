@@ -37,7 +37,6 @@ import java.io.OutputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 
@@ -113,6 +112,7 @@ public class DataLogger extends Activity {
             public void onClick(View v) {
                 isRunning = false;
                 try {
+                    Toast.makeText(getApplicationContext(), dat.size(), Toast.LENGTH_LONG).show();
                     DataLogging.closeExcelFile(dat);
                 } catch (Exception e) {
                     Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
@@ -172,7 +172,7 @@ public class DataLogger extends Activity {
                     try {
 
 
-                        wait(5000);
+                        wait(1000);
 
                         if (!isRunning) {
                             break;
@@ -200,12 +200,12 @@ public class DataLogger extends Activity {
                         java.util.Date time = new java.util.Date(timeStamp * 1000);//Unix to normal time
 
                         DataLogging.writeExcelFile(String.valueOf(time), coolantTMP, intakeTMP, externalTMP, batteryVolts, place);
-
+/*
                         Message msg = mHandler.obtainMessage(1);
                         Bundle bundle = new Bundle();
-                        bundle.putString("toast", "added entry");
+                        bundle.putString("toast", "added entry.");
                         msg.setData(bundle);
-                        mHandler.sendMessage(msg);
+                        mHandler.sendMessage(msg);*/
                     } catch (IOException e) {
                         e.printStackTrace();
                         break;
@@ -261,9 +261,9 @@ public class DataLogger extends Activity {
         public static void closeExcelFile(Map<Integer, Object[]> data) {
 
 
-            Set<Integer> keyset = data.keySet();
+            //Set<Integer> keyset = data.keySet();
             int rownum = 0;
-            for (int i = 0; i < keyset.size(); i++) { //for (String key : keyset) {
+            for (int i = 0; i < data.size(); i++) { //for (String key : keyset) {
                 Row row = mySheet.createRow(rownum++);
                 Object[] objArr = data.get(i);
                 int cellnum = 0;
