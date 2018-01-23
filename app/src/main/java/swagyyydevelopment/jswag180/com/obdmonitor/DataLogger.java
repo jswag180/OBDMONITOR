@@ -1,5 +1,6 @@
 package swagyyydevelopment.jswag180.com.obdmonitor;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
@@ -14,6 +15,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Toast;
 
+import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
@@ -34,18 +36,21 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import swagyyydevelopment.jswag180.com.obdmonitor.CustomCommands.BatteryVoltzCommand;
+import swagyyydevelopment.jswag180.com.obdmonitor.CustomCommands.ShortTermFuleTrimBank1Command;
+import swagyyydevelopment.jswag180.com.obdmonitor.CustomCommands.ShortTermFuleTrimBank2Command;
 
 
 public class DataLogger extends Activity {
 
 
     Button btnStart, btnStop;
-    CheckBox ckIntakeTMP, ckCoolentTMP, ckExTMP, ckBatVoltz;
-    //Handler tempsHandler = new Handler();
+    CheckBox ckIntakeTMP, ckCoolentTMP, ckExTMP, ckBatVoltz, ckRPM, ckFuelTrim;
     protected PowerManager.WakeLock mWakeLock;
     Context context = this;
     BluetoothSocket socket;
@@ -53,8 +58,8 @@ public class DataLogger extends Activity {
     OutputStream mmOutStream = null;
     int place = 0;
     boolean isRunning = false;
-    static boolean IntakeTMP, CoolantTMP, ExTMP, BatVoltz;
-    static Map<Integer, Object[]> dat = new HashMap<Integer, Object[]>();
+    static boolean IntakeTMP, CoolantTMP, ExTMP, BatVoltz, RPM, FuelTrim;
+    static List<Object[]> dat = new ArrayList<Object[]>();
 
     private static Workbook wb;
     private static File file;
@@ -72,6 +77,8 @@ public class DataLogger extends Activity {
         ckCoolentTMP = (CheckBox) findViewById(R.id.ckCoolentTMP);
         ckExTMP = (CheckBox) findViewById(R.id.ckExTMP);
         ckBatVoltz = (CheckBox) findViewById(R.id.ckBatVoltz);
+        ckRPM = (CheckBox) findViewById(R.id.ckRPM);
+        ckFuelTrim = (CheckBox) findViewById(R.id.ckFuelTrim);
 
         final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
@@ -84,6 +91,8 @@ public class DataLogger extends Activity {
                 CoolantTMP = ckCoolentTMP.isChecked();
                 ExTMP = ckExTMP.isChecked();
                 BatVoltz = ckBatVoltz.isChecked();
+                RPM = ckRPM.isChecked();
+                FuelTrim = ckFuelTrim.isChecked();
                 try {
 
                     socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
@@ -96,7 +105,7 @@ public class DataLogger extends Activity {
 
 
                 } catch (Exception e) {
-
+                    Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
                 }
 
                 isRunning = true;
@@ -112,10 +121,10 @@ public class DataLogger extends Activity {
             public void onClick(View v) {
                 isRunning = false;
                 try {
-                    Toast.makeText(getApplicationContext(), dat.size(), Toast.LENGTH_LONG).show();
+                    //Toast.makeText(getApplicationContext(), dat.size(), Toast.LENGTH_LONG).show();
                     DataLogging.closeExcelFile(dat);
                 } catch (Exception e) {
-                    Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), "Stop btn" + e.toString(), Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -129,6 +138,7 @@ public class DataLogger extends Activity {
         super.onDestroy();
     }
 
+    @SuppressLint("HandlerLeak")
     public final Handler mHandler = new Handler() {
 
         @Override
@@ -166,13 +176,22 @@ public class DataLogger extends Activity {
             EngineCoolantTemperatureCommand coolant = new EngineCoolantTemperatureCommand();
             AmbientAirTemperatureCommand external = new AmbientAirTemperatureCommand();
             BatteryVoltzCommand battery = new BatteryVoltzCommand();
+            RPMCommand rpmCommand = new RPMCommand();
+            ShortTermFuleTrimBank1Command fuelTrim1 = new ShortTermFuleTrimBank1Command();
+            ShortTermFuleTrimBank2Command fuelTrim2 = new ShortTermFuleTrimBank2Command();
+
+            Message msg1 = mHandler.obtainMessage(1);
+            Bundle bundle1 = new Bundle();
+            bundle1.putString("toast", "IntakeTMP: " + IntakeTMP + " CoolantTMP: " + CoolantTMP + " ExTMP: " + ExTMP + " BatVoltz: " + BatVoltz);
+            msg1.setData(bundle1);
+            mHandler.sendMessage(msg1);
+
 
             while (isRunning) {
                 synchronized (this) {
                     try {
 
-
-                        wait(1000);
+                        wait(1000);//pullInterval
 
                         if (!isRunning) {
                             break;
@@ -180,26 +199,38 @@ public class DataLogger extends Activity {
 
                         place++;
 
-                        String coolantTMP = "Null", intakeTMP = "Null", externalTMP = "Null", batteryVolts = "Null";
+                        String coolantTMP = "Null", intakeTMP = "Null", externalTMP = "Null", batteryVolts = "Null", enginRPM = "Null", fuleTrim = "Null";
 
                         if (IntakeTMP) {
                             intake.run(mmInStream, mmOutStream);
-                            intakeTMP = String.valueOf(intake.getImperialUnit());
-                        } else if (CoolantTMP) {
+                            intakeTMP = String.valueOf(Math.round(intake.getImperialUnit()));
+                        }
+                        if (CoolantTMP) {
                             coolant.run(mmInStream, mmOutStream);
-                            coolantTMP = String.valueOf(coolant.getImperialUnit());
-                        } else if (ExTMP) {
+                            coolantTMP = String.valueOf(Math.round(coolant.getImperialUnit()));
+                        }
+                        if (ExTMP) {
                             external.run(mmInStream, mmOutStream);
-                            externalTMP = String.valueOf(external.getImperialUnit());
-                        } else if (BatVoltz) {
+                            externalTMP = String.valueOf(Math.round(external.getImperialUnit()));
+                        }
+                        if (BatVoltz) {
                             battery.run(mmInStream, mmOutStream);
                             batteryVolts = battery.getFormattedResult();
+                        }
+                        if (RPM) {
+                            rpmCommand.run(mmInStream, mmOutStream);
+                            enginRPM = String.valueOf(rpmCommand.getRPM());
+                        }
+                        if (FuelTrim) {
+                            fuelTrim1.run(mmInStream, mmOutStream);
+                            fuelTrim2.run(mmInStream, mmOutStream);
+                            fuleTrim = String.valueOf((Integer.getInteger(fuelTrim1.getCalculatedResult()) + Integer.getInteger(fuelTrim2.getCalculatedResult())) / 2);
                         }
 
                         long timeStamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());//Unix Timestamp
                         java.util.Date time = new java.util.Date(timeStamp * 1000);//Unix to normal time
 
-                        DataLogging.writeExcelFile(String.valueOf(time), coolantTMP, intakeTMP, externalTMP, batteryVolts, place);
+                        DataLogging.writeExcelFile(String.valueOf(time), coolantTMP, intakeTMP, externalTMP, batteryVolts, enginRPM, fuleTrim);
 /*
                         Message msg = mHandler.obtainMessage(1);
                         Bundle bundle = new Bundle();
@@ -246,22 +277,20 @@ public class DataLogger extends Activity {
             mySheet = null;
             mySheet = wb.createSheet("logSheet1");
 
-            //dat.put("rowNum", new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts"});
+            dat.add(new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts", "engineRPM", "fuelTrim"});
 
             return success;
 
         }
 
-        public static void writeExcelFile(String timeStamp, String coolentTMP, String intakeTMP, String extrnalTMP, String batteryVolts, int rowNum) {
+        public static void writeExcelFile(String timeStamp, String coolentTMP, String intakeTMP, String extrnalTMP, String batteryVolts, String enginRpm, String fuleTrim) {
 
-            dat.put(rowNum, new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts});
+            dat.add(new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts, enginRpm, fuleTrim});
 
         }
 
-        public static void closeExcelFile(Map<Integer, Object[]> data) {
+        public static void closeExcelFile(List<Object[]> data) {
 
-
-            //Set<Integer> keyset = data.keySet();
             int rownum = 0;
             for (int i = 0; i < data.size(); i++) { //for (String key : keyset) {
                 Row row = mySheet.createRow(rownum++);

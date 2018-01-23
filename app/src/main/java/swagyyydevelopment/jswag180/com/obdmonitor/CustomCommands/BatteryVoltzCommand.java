@@ -1,4 +1,4 @@
-package swagyyydevelopment.jswag180.com.obdmonitor;
+package swagyyydevelopment.jswag180.com.obdmonitor.CustomCommands;
 
 import com.github.pires.obd.commands.ObdCommand;
 
