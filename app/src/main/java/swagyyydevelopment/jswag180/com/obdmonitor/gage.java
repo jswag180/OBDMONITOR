@@ -3,7 +3,7 @@ package swagyyydevelopment.jswag180.com.obdmonitor;
 
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.os.AsyncTask;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -31,6 +31,9 @@ public class gage extends AppCompatActivity{
     BluetoothSocket socket;
     InputStream mmInStream = null;
     OutputStream mmOutStream = null;
+    Handler graberHandler = new Handler();
+    Context context = this;
+    RPMCommand i = new RPMCommand();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +52,18 @@ public class gage extends AppCompatActivity{
         } catch (Exception e) {
             e.printStackTrace();
         }
-            new infoGrab().execute("");
+        //new infoGrab().execute("");
+        try {
+            new EchoOffCommand().run(mmInStream, mmOutStream);
+            new LineFeedOffCommand().run(mmInStream, mmOutStream);
+            new TimeoutCommand(125).run(mmInStream, mmOutStream);
+            new SelectProtocolCommand(ObdProtocols.AUTO).run(mmInStream, mmOutStream);
+            graberHandler.postDelayed(obdCom, 0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         //}
     }
 
@@ -84,6 +98,39 @@ public class gage extends AppCompatActivity{
         }
     };
 
+    Runnable obdCom = new Runnable() {
+        @Override
+        public void run() {
+            synchronized (this) {
+                try {
+
+                    i.run(mmInStream, mmOutStream);
+                    int d = i.getRPM();
+                    String unitToString = Integer.toString(d);
+                    Message msg = mHandler.obtainMessage(3);
+                    Bundle bundle = new Bundle();
+                    bundle.putFloat("ROT", scale(d, 0, 7000, -90, 90));
+                    bundle.putString("RPM", unitToString);
+                    msg.setData(bundle);
+                    mHandler.sendMessage(msg);
+
+                } catch (IOException | InterruptedException e) {
+                    //sendToast(e.toString());
+                    graberHandler.removeCallbacks(obdCom);
+                    Intent intentConServise = new Intent(context, BtCon.class);
+                    startService(intentConServise);
+                    socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
+                    graberHandler.postDelayed(obdCom, 0);
+                }
+                graberHandler.postDelayed(this, 0);
+            }
+        }
+    };
+
+    public float scale(final float valueIn, final float baseMin, final float baseMax, final float limitMin, final float limitMax) {
+        return ((limitMax - limitMin) * (valueIn - baseMin) / (baseMax - baseMin)) + limitMin;
+    }
+/*
     public class infoGrab extends AsyncTask<String, Integer, Integer> {
 
         @Override
@@ -129,6 +176,6 @@ public class gage extends AppCompatActivity{
             return ((limitMax - limitMin) * (valueIn - baseMin) / (baseMax - baseMin)) + limitMin;
         }
     }
-
+    */
 
 }

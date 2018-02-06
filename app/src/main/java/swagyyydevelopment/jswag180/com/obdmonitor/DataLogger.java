@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.github.pires.obd.commands.engine.RPMCommand;
@@ -51,6 +52,7 @@ public class DataLogger extends Activity {
 
     Button btnStart, btnStop;
     CheckBox ckIntakeTMP, ckCoolentTMP, ckExTMP, ckBatVoltz, ckRPM, ckFuelTrim;
+    ProgressBar pbRuning;
     protected PowerManager.WakeLock mWakeLock;
     Context context = this;
     BluetoothSocket socket;
@@ -73,6 +75,7 @@ public class DataLogger extends Activity {
 
         btnStart = (Button) findViewById(R.id.btnStart);
         btnStop = (Button) findViewById(R.id.btnStop);
+        pbRuning = (ProgressBar) findViewById(R.id.pbRuning);
         ckIntakeTMP = (CheckBox) findViewById(R.id.ckIntakeTMP);
         ckCoolentTMP = (CheckBox) findViewById(R.id.ckCoolentTMP);
         ckExTMP = (CheckBox) findViewById(R.id.ckExTMP);
@@ -123,6 +126,11 @@ public class DataLogger extends Activity {
                 try {
                     //Toast.makeText(getApplicationContext(), dat.size(), Toast.LENGTH_LONG).show();
                     DataLogging.closeExcelFile(dat);
+                    Message msg1 = mHandler.obtainMessage(2);
+                    Bundle bundle1 = new Bundle();
+                    bundle1.putBoolean("state", true);
+                    msg1.setData(bundle1);
+                    mHandler.sendMessage(msg1);
                 } catch (Exception e) {
                     Toast.makeText(getApplicationContext(), "Stop btn" + e.toString(), Toast.LENGTH_LONG).show();
                 }
@@ -135,6 +143,11 @@ public class DataLogger extends Activity {
     protected void onDestroy() {
         DataLogging.closeExcelFile(dat);
         this.mWakeLock.release();
+        Message msg1 = mHandler.obtainMessage(2);
+        Bundle bundle1 = new Bundle();
+        bundle1.putBoolean("state", true);
+        msg1.setData(bundle1);
+        mHandler.sendMessage(msg1);
         super.onDestroy();
     }
 
@@ -158,6 +171,12 @@ public class DataLogger extends Activity {
                 case 2:
                     if (null != activity) {
 
+                        if (msg.getData().getBoolean("state")) {
+                            pbRuning.setVisibility(View.VISIBLE);
+                        } else {
+                            pbRuning.setVisibility(View.INVISIBLE);
+                        }
+
                     }
                     break;
 
@@ -180,9 +199,9 @@ public class DataLogger extends Activity {
             ShortTermFuleTrimBank1Command fuelTrim1 = new ShortTermFuleTrimBank1Command();
             ShortTermFuleTrimBank2Command fuelTrim2 = new ShortTermFuleTrimBank2Command();
 
-            Message msg1 = mHandler.obtainMessage(1);
+            Message msg1 = mHandler.obtainMessage(2);
             Bundle bundle1 = new Bundle();
-            bundle1.putString("toast", "IntakeTMP: " + IntakeTMP + " CoolantTMP: " + CoolantTMP + " ExTMP: " + ExTMP + " BatVoltz: " + BatVoltz);
+            bundle1.putBoolean("state", true);
             msg1.setData(bundle1);
             mHandler.sendMessage(msg1);
 
@@ -224,7 +243,11 @@ public class DataLogger extends Activity {
                         if (FuelTrim) {
                             fuelTrim1.run(mmInStream, mmOutStream);
                             fuelTrim2.run(mmInStream, mmOutStream);
-                            fuleTrim = String.valueOf((Integer.getInteger(fuelTrim1.getCalculatedResult()) + Integer.getInteger(fuelTrim2.getCalculatedResult())) / 2);
+                            String ft1 = String.valueOf(fuelTrim1.getCalculatedResult());
+                            String ft2 = String.valueOf(fuelTrim2.getCalculatedResult());
+                            float avrage = (Float.parseFloat(ft1) + Float.parseFloat(ft2)) / 2;
+                            fuleTrim = String.valueOf(Math.round(avrage));
+                            //fuleTrim = fuelTrim1.getCalculatedResult();
                         }
 
                         long timeStamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());//Unix Timestamp
@@ -247,6 +270,12 @@ public class DataLogger extends Activity {
                         msg.setData(bundle);
                         mHandler.sendMessage(msg);
                         break;
+                    } catch (Exception e) {
+                        Message msg = mHandler.obtainMessage(1);
+                        Bundle bundle = new Bundle();
+                        bundle.putString("toast", e.toString());
+                        msg.setData(bundle);
+                        mHandler.sendMessage(msg);
                     }
                 }
             }
@@ -257,6 +286,11 @@ public class DataLogger extends Activity {
         @Override
         protected void onPostExecute(Void aVoid) {
             DataLogging.closeExcelFile(dat);
+            Message msg1 = mHandler.obtainMessage(2);
+            Bundle bundle1 = new Bundle();
+            bundle1.putBoolean("state", false);
+            msg1.setData(bundle1);
+            mHandler.sendMessage(msg1);
             super.onPostExecute(aVoid);
         }
     }

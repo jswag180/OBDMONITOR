@@ -1,5 +1,6 @@
 package swagyyydevelopment.jswag180.com.obdmonitor;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
@@ -9,6 +10,7 @@ import android.os.Message;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.pires.obd.commands.SpeedCommand;
 import com.github.pires.obd.commands.engine.RPMCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
@@ -28,7 +30,9 @@ public class GeussGear extends Activity {
     InputStream mmInStream = null;
     OutputStream mmOutStream = null;
     int rpm, lastRpm;
-    double delta = 0;
+    double speed = 0.00;
+    RPMCommand i = new RPMCommand();
+    SpeedCommand s = new SpeedCommand();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +56,7 @@ public class GeussGear extends Activity {
 
     }
 
+    @SuppressLint("HandlerLeak")
     public final Handler mHandler = new Handler() {
 
         @Override
@@ -74,9 +79,40 @@ public class GeussGear extends Activity {
                     if (null != activity) {
 
                         rpm = msg.getData().getInt("RPM");
-                        delta = rpm - lastRpm;
-                        lastRpm = rpm;
-                        txtbah.setText(rpm + "\nwith delta change of: " + delta);
+                        speed = msg.getData().getFloat("SPEED");
+
+                        //1st(0.9728) 2nd(0.6918) 3rd(0.4652) 4th(0.3021) 5th(0.2145)
+
+                        double gearRatio = ((speed / (60 * 2.17046302)) / (rpm / 1000));// speed(km/h) / (60 * wheel diameter) / rpm in thousands
+
+                        if (gearRatio == 0.97) { //1st 0.972809667673716
+
+                            txtbah.setText("Gear: " + "1st");
+
+                        } else if (gearRatio == 0.69) { //2nd  0.6918429003021148
+
+                            txtbah.setText("Gear: " + "2nd");
+
+                        } else if (gearRatio == 0.46) { //3rd 0.4652567975830816
+
+                            txtbah.setText("Gear: " + "3rd");
+
+                        } else if (gearRatio == 0.30) { //4th 0.3021148036253776
+
+                            txtbah.setText("Gear: " + "4th");
+
+                        } else if (gearRatio == 0.21) { //5th  0.2145015105740181
+
+                            txtbah.setText("Gear: " + "5th");
+
+                        } else if (gearRatio == 0.92) { //Reverse 0.9274924471299094
+
+                            txtbah.setText("Gear: " + "Reverse");
+
+                        } else {
+                            txtbah.setText("Gear: " + "Unknown: " + gearRatio);
+                        }
+
 
                     }
                     break;
@@ -90,13 +126,15 @@ public class GeussGear extends Activity {
         public void run() {
 
             try {
-                RPMCommand i;
-                i = new RPMCommand();
+
                 i.run(mmInStream, mmOutStream);
-                int d = i.getRPM();
+                s.run(mmInStream, mmOutStream);
+                float d = i.getRPM();
+                float b = s.getMetricSpeed();
                 Message msg = mHandler.obtainMessage(2);
                 Bundle bundle = new Bundle();
-                bundle.putInt("RPM", d);
+                bundle.putFloat("RPM", d);
+                bundle.putFloat("SPEED", b);
                 msg.setData(bundle);
                 mHandler.sendMessage(msg);
             } catch (InterruptedException e) {
