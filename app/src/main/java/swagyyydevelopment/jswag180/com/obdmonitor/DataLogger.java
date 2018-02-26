@@ -2,8 +2,14 @@ package swagyyydevelopment.jswag180.com.obdmonitor;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -17,6 +23,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.github.pires.obd.commands.engine.RPMCommand;
+import com.github.pires.obd.commands.engine.ThrottlePositionCommand;
 import com.github.pires.obd.commands.protocol.EchoOffCommand;
 import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
 import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
@@ -32,15 +39,24 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import swagyyydevelopment.jswag180.com.obdmonitor.CustomCommands.BatteryVoltzCommand;
 import swagyyydevelopment.jswag180.com.obdmonitor.CustomCommands.ShortTermFuleTrimBank1Command;
@@ -51,7 +67,7 @@ public class DataLogger extends Activity {
 
 
     Button btnStart, btnStop;
-    CheckBox ckIntakeTMP, ckCoolentTMP, ckExTMP, ckBatVoltz, ckRPM, ckFuelTrim;
+    CheckBox ckIntakeTMP, ckCoolentTMP, ckExTMP, ckBatVoltz, ckRPM, ckFuelTrim, ckTpos;
     ProgressBar pbRuning;
     protected PowerManager.WakeLock mWakeLock;
     Context context = this;
@@ -60,13 +76,17 @@ public class DataLogger extends Activity {
     OutputStream mmOutStream = null;
     int place = 0;
     boolean isRunning = false;
-    static boolean IntakeTMP, CoolantTMP, ExTMP, BatVoltz, RPM, FuelTrim;
+    static boolean IntakeTMP, CoolantTMP, ExTMP, BatVoltz, RPM, FuelTrim, Tpos;
     static List<Object[]> dat = new ArrayList<Object[]>();
 
     private static Workbook wb;
     private static File file;
     private static Sheet mySheet;
     private static FileOutputStream os = null;
+    private static String fileName;
+    private static ConnectivityManager cm;
+    private static boolean isdLoggingSent = false;
+    private static TrustManagerFactory tmf;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,10 +102,35 @@ public class DataLogger extends Activity {
         ckBatVoltz = (CheckBox) findViewById(R.id.ckBatVoltz);
         ckRPM = (CheckBox) findViewById(R.id.ckRPM);
         ckFuelTrim = (CheckBox) findViewById(R.id.ckFuelTrim);
+        ckTpos = (CheckBox) findViewById(R.id.ckTpos);
 
         final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         this.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "My Tag");
         this.mWakeLock.acquire();
+
+        DialogFragment newFragment = new InfoDialogFragment();
+        newFragment.show(getFragmentManager(), "missiles");
+
+        cm = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+
+        try {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            Certificate ca;
+            InputStream caInput = new BufferedInputStream(getResources().openRawResource(R.raw.logging));
+            ca = cf.generateCertificate(caInput);
+
+            String keyStoreType = KeyStore.getDefaultType();
+            KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+            keyStore.load(null, null);
+            keyStore.setCertificateEntry("ca", ca);
+
+            String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+            tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+            tmf.init(keyStore);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -96,6 +141,7 @@ public class DataLogger extends Activity {
                 BatVoltz = ckBatVoltz.isChecked();
                 RPM = ckRPM.isChecked();
                 FuelTrim = ckFuelTrim.isChecked();
+                Tpos = ckTpos.isChecked();
                 try {
 
                     socket = swagyyydevelopment.jswag180.com.obdmonitor.Socket.getSocket();
@@ -125,7 +171,7 @@ public class DataLogger extends Activity {
                 isRunning = false;
                 try {
                     //Toast.makeText(getApplicationContext(), dat.size(), Toast.LENGTH_LONG).show();
-                    DataLogging.closeExcelFile(dat);
+                    DataLogging.closeExcelFile(dat, context);
                     Message msg1 = mHandler.obtainMessage(2);
                     Bundle bundle1 = new Bundle();
                     bundle1.putBoolean("state", true);
@@ -141,7 +187,7 @@ public class DataLogger extends Activity {
 
     @Override
     protected void onDestroy() {
-        DataLogging.closeExcelFile(dat);
+        DataLogging.closeExcelFile(dat, context);
         this.mWakeLock.release();
         Message msg1 = mHandler.obtainMessage(2);
         Bundle bundle1 = new Bundle();
@@ -189,7 +235,9 @@ public class DataLogger extends Activity {
         @Override
         protected Void doInBackground(Void... params) {
 
-            DataLogging.getExcelFile(context, "DataLog.xls");
+            fileName = null;
+            fileName = "DataLog-" + new java.util.Date(TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() * 1000) + ".xls");
+            DataLogging.getExcelFile(context, fileName);
 
             AirIntakeTemperatureCommand intake = new AirIntakeTemperatureCommand();
             EngineCoolantTemperatureCommand coolant = new EngineCoolantTemperatureCommand();
@@ -198,6 +246,7 @@ public class DataLogger extends Activity {
             RPMCommand rpmCommand = new RPMCommand();
             ShortTermFuleTrimBank1Command fuelTrim1 = new ShortTermFuleTrimBank1Command();
             ShortTermFuleTrimBank2Command fuelTrim2 = new ShortTermFuleTrimBank2Command();
+            ThrottlePositionCommand positionCommand = new ThrottlePositionCommand();
 
             Message msg1 = mHandler.obtainMessage(2);
             Bundle bundle1 = new Bundle();
@@ -218,7 +267,7 @@ public class DataLogger extends Activity {
 
                         place++;
 
-                        String coolantTMP = "Null", intakeTMP = "Null", externalTMP = "Null", batteryVolts = "Null", enginRPM = "Null", fuleTrim = "Null";
+                        String coolantTMP = "Null", intakeTMP = "Null", externalTMP = "Null", batteryVolts = "Null", enginRPM = "Null", fuleTrim = "Null", tpos = "Null";
 
                         if (IntakeTMP) {
                             intake.run(mmInStream, mmOutStream);
@@ -247,13 +296,16 @@ public class DataLogger extends Activity {
                             String ft2 = String.valueOf(fuelTrim2.getCalculatedResult());
                             float avrage = (Float.parseFloat(ft1) + Float.parseFloat(ft2)) / 2;
                             fuleTrim = String.valueOf(Math.round(avrage));
-                            //fuleTrim = fuelTrim1.getCalculatedResult();
+                        }
+                        if (Tpos) {
+                            positionCommand.run(mmInStream, mmOutStream);
+                            tpos = String.valueOf(Math.round(positionCommand.getPercentage()) + "%");
                         }
 
                         long timeStamp = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());//Unix Timestamp
                         java.util.Date time = new java.util.Date(timeStamp * 1000);//Unix to normal time
 
-                        DataLogging.writeExcelFile(String.valueOf(time), coolantTMP, intakeTMP, externalTMP, batteryVolts, enginRPM, fuleTrim);
+                        DataLogging.writeExcelFile(String.valueOf(time), coolantTMP, intakeTMP, externalTMP, batteryVolts, enginRPM, fuleTrim, tpos);
 /*
                         Message msg = mHandler.obtainMessage(1);
                         Bundle bundle = new Bundle();
@@ -285,7 +337,7 @@ public class DataLogger extends Activity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            DataLogging.closeExcelFile(dat);
+            DataLogging.closeExcelFile(dat, context);
             Message msg1 = mHandler.obtainMessage(2);
             Bundle bundle1 = new Bundle();
             bundle1.putBoolean("state", false);
@@ -311,19 +363,19 @@ public class DataLogger extends Activity {
             mySheet = null;
             mySheet = wb.createSheet("logSheet1");
 
-            dat.add(new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts", "engineRPM", "fuelTrim"});
+            dat.add(new Object[]{"timeStamp", "coolantTMP", "intakeTMP", "externalTMP", "batteryVolts", "engineRPM", "fuelTrim", "Throttle POS"});
 
             return success;
 
         }
 
-        public static void writeExcelFile(String timeStamp, String coolentTMP, String intakeTMP, String extrnalTMP, String batteryVolts, String enginRpm, String fuleTrim) {
+        public static void writeExcelFile(String timeStamp, String coolentTMP, String intakeTMP, String extrnalTMP, String batteryVolts, String enginRpm, String fuleTrim, String Tops) {
 
-            dat.add(new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts, enginRpm, fuleTrim});
+            dat.add(new Object[]{timeStamp, coolentTMP, intakeTMP, extrnalTMP, batteryVolts, enginRpm, fuleTrim, Tops});
 
         }
 
-        public static void closeExcelFile(List<Object[]> data) {
+        public static void closeExcelFile(List<Object[]> data, Context context1) {
 
             int rownum = 0;
             for (int i = 0; i < data.size(); i++) { //for (String key : keyset) {
@@ -353,8 +405,50 @@ public class DataLogger extends Activity {
                 Log.w("FileUtils", "Failed to save file", e);
             } finally {
                 try {
-                    if (null != os)
+                    if (null != os) {
                         os.close();
+                    }
+                    if (isdLoggingSent) {
+                        java.net.Socket socket;
+                        SSLContext SSLcontext = SSLContext.getInstance("TLS");
+                        SSLcontext.init(null, tmf.getTrustManagers(), null);
+                        SSLSocketFactory ssf = SSLcontext.getSocketFactory();
+                        NetworkInfo info = cm.getActiveNetworkInfo();
+                        if (info.getType() == ConnectivityManager.TYPE_WIFI && info.getExtraInfo().equals("Linksys04054_5GHz")) {//&& info.getExtraInfo().equals("Linksys04054")
+                            socket = ssf.createSocket("192.168.1.2", 5000);
+                        } else {
+                            socket = ssf.createSocket("73.74.190.127", 5000);
+                        }
+
+                        OutputStream outputStream = socket.getOutputStream();
+                        InputStream inputStream = socket.getInputStream();
+
+                        //3 way hand shake
+                        outputStream.write("SYN".getBytes());//SYN
+
+                        byte[] buffer = new byte[1024];
+                        inputStream.read(buffer);
+                        StringBuilder so = new StringBuilder(buffer.length);
+                        for (int i = 0; i < buffer.length; i++) {
+                            so.append((char) buffer[i]);
+                        }
+                        if (so.toString().equals("SYN-ACK")) {//SYN-ACK
+                            outputStream.write("ACK".getBytes());//ACK
+                            outputStream.write(fileName.getBytes());
+                            File fileOut = new File(context1.getExternalFilesDir(null), fileName);
+                            byte[] mybytearray = new byte[(int) fileOut.length()];
+                            FileInputStream fis = new FileInputStream(fileOut);
+                            BufferedInputStream bis = new BufferedInputStream(fis);
+                            bis.read(mybytearray, 0, mybytearray.length);
+                            outputStream.write(mybytearray, 0, mybytearray.length);
+                            outputStream.flush();
+                        }
+                        outputStream.close();
+                        inputStream.close();
+                        socket.close();
+                    }
+                } catch (IOException io) {
+                    //socket errors
                 } catch (Exception ex) {
 
                 }
@@ -365,5 +459,27 @@ public class DataLogger extends Activity {
 
     }
 
+    public static class InfoDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            // Use the Builder class for convenient dialog construction
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage("Do you want logs sent to the log server?")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            isdLoggingSent = true;
+                        }
+                    })
+
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            isdLoggingSent = false;
+                        }
+                    });
+
+            // Create the AlertDialog object and return it
+            return builder.create();
+        }
+    }
 
 }

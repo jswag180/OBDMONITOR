@@ -21,6 +21,7 @@ import com.github.pires.obd.enums.ObdProtocols;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.DecimalFormat;
 
 public class GeussGear extends Activity {
 
@@ -83,25 +84,29 @@ public class GeussGear extends Activity {
 
                         //1st(0.9728) 2nd(0.6918) 3rd(0.4652) 4th(0.3021) 5th(0.2145)
 
-                        double gearRatio = ((speed / (60 * 2.17046302)) / (rpm / 1000));// speed(km/h) / (60 * wheel diameter) / rpm in thousands
-
-                        if (gearRatio == 0.97) { //1st 0.972809667673716
+                        double gearRatio = (speed / (60 * 2.17046302)) / (rpm / 1000);// speed(km/h) / (60 * wheel diameter) / rpm in thousands
+                        try {
+                            gearRatio = Float.parseFloat(new DecimalFormat("0.00").format(gearRatio));
+                        } catch (Exception e) {
+                            Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_SHORT).show();
+                        }
+                        if (gearRatio >= 0.96 && gearRatio <= 0.98) { //1st 0.972809667673716
 
                             txtbah.setText("Gear: " + "1st");
 
-                        } else if (gearRatio == 0.69) { //2nd  0.6918429003021148
+                        } else if (gearRatio >= 0.68 && gearRatio <= 0.70) { //2nd  0.6918429003021148
 
                             txtbah.setText("Gear: " + "2nd");
 
-                        } else if (gearRatio == 0.46) { //3rd 0.4652567975830816
+                        } else if (gearRatio >= 0.45 && gearRatio <= 0.47) { //3rd 0.4652567975830816
 
                             txtbah.setText("Gear: " + "3rd");
 
-                        } else if (gearRatio == 0.30) { //4th 0.3021148036253776
+                        } else if (gearRatio >= 0.29 && gearRatio <= 0.31) { //4th 0.3021148036253776
 
                             txtbah.setText("Gear: " + "4th");
 
-                        } else if (gearRatio == 0.21) { //5th  0.2145015105740181
+                        } else if (gearRatio >= 0.20 && gearRatio <= 0.22) { //5th  0.2145015105740181
 
                             txtbah.setText("Gear: " + "5th");
 
@@ -110,7 +115,7 @@ public class GeussGear extends Activity {
                             txtbah.setText("Gear: " + "Reverse");
 
                         } else {
-                            txtbah.setText("Gear: " + "Unknown: " + gearRatio);
+                            txtbah.setText("Gear: " + "Unknown: " + gearRatio + " Speed: " + speed + " RPM: " + (rpm / 1000));
                         }
 
 
@@ -129,11 +134,11 @@ public class GeussGear extends Activity {
 
                 i.run(mmInStream, mmOutStream);
                 s.run(mmInStream, mmOutStream);
-                float d = i.getRPM();
+                int d = i.getRPM();
                 float b = s.getMetricSpeed();
                 Message msg = mHandler.obtainMessage(2);
                 Bundle bundle = new Bundle();
-                bundle.putFloat("RPM", d);
+                bundle.putInt("RPM", d);
                 bundle.putFloat("SPEED", b);
                 msg.setData(bundle);
                 mHandler.sendMessage(msg);
